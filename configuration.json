@@ -1,0 +1,17 @@
+[
+    {
+        "name":"login",
+        "endpoints":["login","signup"],
+        "canlead":true
+    },
+    {
+        "name":"formadmin",
+        "endpoints":["add_form","remove_form","update_form"],
+        "canlead":true
+    },
+    {
+        "name":"formserver",
+        "endpoints":["get_form"],
+        "canlead":false
+    }
+]
