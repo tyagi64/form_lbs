@@ -13,9 +13,12 @@ type IP_PORT_ROW struct {
 	Port int
 }
 
+func (I *IP_PORT_ROW) ToString() string {
+	output := fmt.Sprintf("http://%s:%d", I.Ip, I.Port)
+	return output
+}
 func (I *IP_PORT_ROW) ToBytes() []byte {
 	output := fmt.Appendf(nil, "IP:%s,PORT:%d", I.Ip, I.Port)
-	fmt.Printf("%s", output)
 	return output
 }
 

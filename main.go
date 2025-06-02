@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -25,9 +26,62 @@ func ReadAndLoadConfiguration(St *types.BS_State) {
 func run_user_server(port string, serverName string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "USER SERVER")
-	})
+	for _, service := range State.Services {
+		for _, ep := range service.ServiceEndpoints {
+			mux.HandleFunc("/"+ep, func(w http.ResponseWriter, r *http.Request) {
+				res, err := State.GetAvailabe(service.ServiceName, ep)
+				if err != nil {
+					w.WriteHeader(404)
+					fmt.Fprintf(w, "Not a valid endpoint")
+				} else {
+
+					// Construct the new request
+					targetURL := res.ToString() + r.URL.Path // Replace with your target server address
+					proxyReq, err := http.NewRequest(r.Method, targetURL, r.Body)
+					if err != nil {
+						http.Error(w, "Error creating proxy request", http.StatusInternalServerError)
+						return
+					}
+
+					// Copy all headers from the original request to the new request
+					for name, values := range r.Header {
+						for _, value := range values {
+							proxyReq.Header.Add(name, value)
+						}
+					}
+
+					// Optionally, add/modify headers like X-Forwarded-For
+					proxyReq.Header.Set("X-Forwarded-For", r.RemoteAddr)
+
+					// Execute the new request
+					client := &http.Client{}
+					resp, err := client.Do(proxyReq)
+					if err != nil {
+						http.Error(w, "Error forwarding request", http.StatusBadGateway)
+						return
+					}
+					defer resp.Body.Close()
+
+					// Copy headers from the proxy response to the original response writer
+					for name, values := range resp.Header {
+						for _, value := range values {
+							w.Header().Add(name, value)
+						}
+					}
+
+					// Set the status code
+					w.WriteHeader(resp.StatusCode)
+
+					// Copy the response body
+					_, err = io.Copy(w, resp.Body)
+					if err != nil {
+						log.Printf("Error copying response body: %v", err)
+					}
+
+				}
+			})
+		}
+	}
 	server := &http.Server{
 		Addr:    ":" + port,
 		Handler: mux,
