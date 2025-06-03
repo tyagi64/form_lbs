@@ -41,9 +41,9 @@ func (B *BS_State) GetAvailabe(sname string, ename string) (IP_PORT_ROW, error) 
 	// Check for the size of nodes also it should not exceed and increment in roud robin fashion
 	var output IP_PORT_ROW
 	if index, exists := B.EndPointIndex[ename]; exists {
-		if len(B.Nodes[sname]) >= index {
+		if len(B.Nodes[sname]) > 0 {
 			output = B.Nodes[sname][index]
-			B.EndPointIndex[ename] = ((B.EndPointIndex[ename] + 1) % len(B.Nodes))
+			B.EndPointIndex[ename] = ((B.EndPointIndex[ename] + 1) % len(B.Nodes[sname]))
 			return output, nil
 		}
 	}
@@ -62,7 +62,9 @@ func CheckCapability(services []Service, sname string) bool {
 }
 func (B *BS_State) CheckLeader(bod IP_PORT) bool {
 	output := false
-	if _, exists := B.Nodes[bod.Sname]; exists {
+	fmt.Println(bod.Sname)
+	_, exists := B.Nodes[bod.Sname]
+	if exists {
 		if CheckCapability(B.Services, bod.Sname) {
 
 			if B.Leader == "None" {

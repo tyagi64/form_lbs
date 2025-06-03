@@ -37,12 +37,13 @@ func run_user_server(port string, serverName string, wg *sync.WaitGroup) {
 
 					// Construct the new request
 					targetURL := res.ToString() + r.URL.Path // Replace with your target server address
+
 					proxyReq, err := http.NewRequest(r.Method, targetURL, r.Body)
 					if err != nil {
 						http.Error(w, "Error creating proxy request", http.StatusInternalServerError)
 						return
 					}
-
+					proxyReq.URL.RawQuery = r.URL.Query().Encode()
 					// Copy all headers from the original request to the new request
 					for name, values := range r.Header {
 						for _, value := range values {
@@ -111,6 +112,7 @@ func run_app_server(port string, serverName string, wg *sync.WaitGroup) {
 				isLeader := State.CheckLeader(app_info)
 				if isLeader {
 					w.WriteHeader(204)
+					w.Write([]byte("done"))
 				} else {
 					w.WriteHeader(200)
 					w.Write(State.GetLeader())
